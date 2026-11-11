@@ -1,0 +1,135 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Hardened Global Primitives
+    function isValidId(id) {
+      return id is string && id.size() >= 3 && id.size() <= 64 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'thaotrainner@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // 3. Entity Validation Blueprint: FamilyRoom
+    function isValidFamilyRoom(data, familyCode) {
+      return data.keys().hasAll([
+          'familyCode',
+          'ownerId',
+          'stars',
+          'totalStarsEarned',
+          'level',
+          'currentXp',
+          'payload',
+          'lastSyncTimestamp',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'familyCode',
+          'ownerId',
+          'stars',
+          'totalStarsEarned',
+          'level',
+          'currentXp',
+          'payload',
+          'lastSyncTimestamp',
+          'lastUpdatedAt',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.familyCode is string &&
+        data.familyCode.size() >= 3 &&
+        data.familyCode.size() <= 64 &&
+        data.familyCode.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.familyCode == familyCode &&
+        data.ownerId is string &&
+        data.ownerId.size() >= 1 &&
+        data.ownerId.size() <= 128 &&
+        data.ownerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.stars is number &&
+        data.stars >= 0 &&
+        data.stars <= 1000000 &&
+        data.totalStarsEarned is number &&
+        data.totalStarsEarned >= 0 &&
+        data.totalStarsEarned <= 10000000 &&
+        data.level is number &&
+        data.level >= 1 &&
+        data.level <= 1000 &&
+        data.currentXp is number &&
+        data.currentXp >= 0 &&
+        data.currentXp <= 10000000 &&
+        data.payload is map &&
+        data.payload.size() <= 30 &&
+        data.lastSyncTimestamp is number &&
+        data.lastSyncTimestamp >= 0 &&
+        (!('lastUpdatedAt' in data) || (data.lastUpdatedAt is number && data.lastUpdatedAt >= 0)) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // 4. Collection Rules: /families/{familyCode}
+    match /families/{familyCode} {
+      // Single-document lookup by exact familyCode for signed-in family members
+      allow get: if isSignedIn() && isValidId(familyCode);
+
+      // Disallow collection-wide list enumeration to protect family codes
+      allow list: if false;
+
+      // Create new family room
+      allow create: if isSignedIn() &&
+        isValidId(familyCode) &&
+        isValidFamilyRoom(incoming(), familyCode) &&
+        incoming().ownerId == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+
+      // Action-Based Update: Sync stars, tasks, and progress across family devices
+      allow update: if isSignedIn() &&
+        isValidId(familyCode) &&
+        isValidFamilyRoom(incoming(), familyCode) &&
+        incoming().familyCode == existing().familyCode &&
+        incoming().ownerId == existing().ownerId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        (
+          isAdmin() ||
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'stars',
+            'totalStarsEarned',
+            'level',
+            'currentXp',
+            'payload',
+            'lastSyncTimestamp',
+            'lastUpdatedAt',
+            'updatedAt'
+          ])
+        );
+
+      // Delete restricted to owner or admin
+      allow delete: if isSignedIn() &&
+        isValidId(familyCode) &&
+        (existing().ownerId == request.auth.uid || isAdmin());
+    }
+  }
+}

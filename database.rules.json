@@ -1,0 +1,20 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "familyMembers": {
+      "$familyCode": {
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          ".write": "auth != null && auth.uid === $uid && $familyCode.length >= 3 && $familyCode.length <= 64 && $familyCode.matches(/^[A-Za-z0-9_\\-]+$/) && newData.val() === true"
+        }
+      }
+    },
+    "families": {
+      "$familyCode": {
+        ".read": "auth != null && root.child('familyMembers').child($familyCode).child(auth.uid).val() === true",
+        ".write": "auth != null && root.child('familyMembers').child($familyCode).child(auth.uid).val() === true && newData.exists() && newData.child('familyCode').val() === $familyCode && newData.child('data').isString() === false && newData.child('lastUpdatedAt').isNumber() && (!data.exists() || newData.child('lastUpdatedAt').val() >= data.child('lastUpdatedAt').val())"
+      }
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "KidHero - Bé Tự Lập & Nhiệm Vụ Hằng Ngày",
+  "description": "Ứng dụng rèn luyện thói quen tự lập cho trẻ tiểu học với nhiệm vụ hàng ngày, thử thách vui nhộn, tích điểm đổi quà, nhắc nhở giọng nói, bảo mật phụ huynh và đồng bộ đa thiết bị.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

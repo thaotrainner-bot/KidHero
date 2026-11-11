@@ -1,0 +1,81 @@
+{
+  "entities": {
+    "FamilyRoom": {
+      "title": "FamilyRoom",
+      "description": "Real-time synchronized KidHero family state including stars, child profile, tasks, rewards, challenges, and discipline logs.",
+      "type": "object",
+      "properties": {
+        "familyCode": {
+          "type": "string",
+          "description": "Unique family sync code (e.g., HERO-KID-8823)",
+          "minLength": 3,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the user who created or updated the family room",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "stars": {
+          "type": "number",
+          "description": "Current star balance of the child"
+        },
+        "totalStarsEarned": {
+          "type": "number",
+          "description": "Total cumulative stars earned by the child"
+        },
+        "level": {
+          "type": "number",
+          "description": "Current hero level of the child"
+        },
+        "currentXp": {
+          "type": "number",
+          "description": "Current experience points of the child"
+        },
+        "payload": {
+          "type": "object",
+          "description": "Structured KidHero application state map (profile, tasks, rewards, challenges, badges, history, discipline, watchConfig, settings)"
+        },
+        "lastSyncTimestamp": {
+          "type": "number",
+          "description": "Client millisecond timestamp for conflict resolution"
+        },
+        "lastUpdatedAt": {
+          "type": "number",
+          "description": "Client millisecond timestamp for last update"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp"
+        }
+      },
+      "required": [
+        "familyCode",
+        "ownerId",
+        "stars",
+        "totalStarsEarned",
+        "level",
+        "currentXp",
+        "payload",
+        "lastSyncTimestamp",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/families/{familyCode}": {
+      "schema": "FamilyRoom",
+      "description": "Stores real-time synchronized KidHero family state indexed by familyCode."
+    }
+  }
+}
